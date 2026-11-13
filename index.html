@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی سه لیوان و توپ</title>
+    <style>
+        body {
+            background-color: #1a1a2e;
+            color: #ffffff;
+            font-family: Tahoma, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #e94560;
+            margin-bottom: 5px;
+        }
+        #score-board {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #ffffff;
+            background: #e94560;
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .cups-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 60px;
+            min-height: 180px;
+            align-items: flex-end;
+        }
+        .cup-wrapper {
+            cursor: pointer;
+            text-align: center;
+            position: relative;
+            width: 90px;
+            height: 140px;
+        }
+        .cup {
+            width: 90px;
+            height: 110px;
+            background: linear-gradient(135deg, #f0a500, #cf7500);
+            border-radius: 0 0 45px 45px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            transition: transform 0.4s ease;
+            z-index: 2;
+        }
+        /* لبه بالای لیوان */
+        .cup::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -5px;
+            width: 100px;
+            height: 15px;
+            background: #d48100;
+            border-radius: 50%;
+        }
+        /* حالت بلند شدن لیوان */
+        .cup.lift {
+            transform: translateY(-70px);
+        }
+        .ball {
+            width: 34px;
+            height: 34px;
+            background: radial-gradient(circle at 30% 30%, #ff4757, #ff6b81);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 10px;
+            left: 28px;
+            display: none;
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.6);
+            z-index: 1;
+        }
+        #message {
+            font-size: 20px;
+            margin-top: 30px;
+            font-weight: bold;
+            height: 30px;
+            color: #00b4d8;
+        }
+        #start-btn {
+            background-color: #00b4d8;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 40px;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,184,216,0.4);
+            transition: 0.2s;
+        }
+        #start-btn:hover {
+            background-color: #0077b6;
+        }
+        #start-btn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>بازی سه لیوان و توپ</h1>
+    <div id="score-board">امتیاز: <span id="score">0</span></div>
+
+    <div id="message">روی دکمه شروع بازی کلیک کنید!</div>
+
+    <div class="cups-container">
+        <div class="cup-wrapper" onclick="checkChoice(0)">
+            <div class="ball" id="ball-0"></div>
+            <div class="cup" id="cup-0"></div>
+        </div>
+        <div class="cup-wrapper" onclick="checkChoice(1)">
+            <div class="ball" id="ball-1"></div>
+            <div class="cup" id="cup-1"></div>
+        </div>
+        <div class="cup-wrapper" onclick="checkChoice(2)">
+            <div class="ball" id="ball-2"></div>
+            <div class="cup" id="cup-2"></div>
+        </div>
+    </div>
+
+    <br>
+    <button id="start-btn" onclick="startGame()">شروع بازی</button>
+
+    <script>
+        let ballPosition = 0; 
+        let gameActive = false;
+        let canGuess = false;
+        let score = 0;
+
+        function startGame() {
+            if (gameActive) return;
+            gameActive = true;
+            canGuess = false;
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('message').innerText = "توپ زیر کدام لیوان است؟ دقیق نگاه کنید...";
+
+            // مخفی کردن توپ‌ها و پایین آوردن لیوان‌ها
+            for (let i = 0; i < 3; i++) {
+                document.getElementById(`ball-${i}`).style.display = 'none';
+                document.getElementById(`cup-${i}`).classList.remove('lift');
+            }
+
+            // انتخاب تصادفی جایگاه توپ
+            ballPosition = Math.floor(Math.random() * 3);
+
+            // نشان دادن توپ در ابتدا به مدت 1.5 ثانیه به بازیکن
+            setTimeout(() => {
+                document.getElementById(`ball-${ballPosition}`).style.display = 'block';
+                document.getElementById(`cup-${ballPosition}`).classList.add('lift');
+            }, 500);
+
+            // پوشاندن دوباره توپ بعد از 2.5 ثانیه و شروع جابجایی‌ها
+            setTimeout(() => {
+                document.getElementById(`cup-${ballPosition}`).classList.remove('lift');
+                document.getElementById(`ball-${ballPosition}`).style.display = 'none';
+                
+                // شروع انیمیشن جابجایی لیوان‌ها
+                shuffleCups(6, () => {
+                    document.getElementById('message').innerText = "حالا حدس بزنید توپ کجاست!";
+                    canGuess = true;
+                });
+            }, 2300);
+        }
+
+        function shuffleCups(timesLeft, callback) {
+            if (timesLeft <= 0) {
+                callback();
+                return;
+            }
+
+            let r1 = Math.floor(Math.random() * 3);
+            let r2;
+            do {
+                r2 = Math.floor(Math.random() * 3);
+            } while (r1 === r2);
+
+            if (ballPosition === r1) {
+                ballPosition = r2;
+            } else if (ballPosition === r2) {
+                ballPosition = r1;
+            }
+
+            document.getElementById(`cup-${r1}`).classList.add('lift');
+            document.getElementById(`cup-${r2}`).classList.add('lift');
+
+            setTimeout(() => {
+                document.getElementById(`cup-${r1}`).classList.remove('lift');
+                document.getElementById(`cup-${r2}`).classList.remove('lift');
+                
+                setTimeout(() => {
+                    shuffleCups(timesLeft - 1, callback);
+                }, 250);
+            }, 300);
+        }
+
+        function checkChoice(selectedCup) {
+            if (!canGuess) return;
+            canGuess = false;
+
+            // نمایش توپ در جایگاه واقعی خودش
+            document.getElementById(`ball-${ballPosition}`).style.display = 'block';
+            document.getElementById(`cup-${ballPosition}`).classList.add('lift');
+
+            if (selectedCup === ballPosition) {
+                document.getElementById('message').innerText = "آفرین! درست حدس زدی 🎉";
+                score++;
+                document.getElementById('score').innerText = score;
+            } else {
+                document.getElementById('message').innerText = "اشتباه کردی! توپ زیر این لیوان نبود ❌";
+            }
+
+            document.getElementById('start-btn').disabled = false;
+            gameActive = false;
+        }
+    </script>
+</body>
+</html>
